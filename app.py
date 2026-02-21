@@ -666,10 +666,10 @@ def main():
                             "correct_index": q.correct
                         })
 
-    st.session_state.idx += 1
-    if st.session_state.idx >= total:
-        st.session_state.step = "done"
-    st.rerun()
+                    st.session_state.idx += 1
+                    if st.session_state.idx >= total:
+                        st.session_state.step = "done"
+                    st.rerun()
     # ---------- Step: DONE ----------
     if st.session_state.step == "done":
         st.subheader("Done!")
