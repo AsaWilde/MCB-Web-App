@@ -508,15 +508,16 @@ def chapter_pool_names():
 # ---------------- App state helpers ----------------
 def init_state():
     defaults = {
-        "step": "mode",              # mode -> pools -> quiz -> done
-        "mode": None,                # exam/practice
-        "choose_style": "assignment",# assignment/chapter
-        "selected_questions": [],
-        "order": [],
-        "idx": 0,
-        "score": 0,
-        "needs_retry": False,
-    }
+    "step": "mode",
+    "mode": None,
+    "choose_style": "assignment",
+    "selected_questions": [],
+    "order": [],
+    "idx": 0,
+    "score": 0,
+    "needs_retry": False,
+    "wrong_questions": []   # ⭐ NEW
+}
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
@@ -528,6 +529,7 @@ def start_quiz(qs: List[Question]):
     st.session_state.idx = 0
     st.session_state.score = 0
     st.session_state.needs_retry = False
+    st.session_state.wrong_questions = []  # ⭐ NEW
     st.session_state.step = "quiz"
 
 # ---------------- Main ----------------
@@ -656,11 +658,18 @@ def main():
                 else:
                     if correct:
                         st.session_state.score += 1
-                    st.session_state.idx += 1
-                    if st.session_state.idx >= total:
-                        st.session_state.step = "done"
-                    st.rerun()
+                    else:
+                        # ⭐ SAVE MISSED QUESTION
+                        st.session_state.wrong_questions.append({
+                            "question": q.prompt,
+                            "options": q.options,
+                            "correct_index": q.correct
+                        })
 
+    st.session_state.idx += 1
+    if st.session_state.idx >= total:
+        st.session_state.step = "done"
+    st.rerun()
     # ---------- Step: DONE ----------
     if st.session_state.step == "done":
         st.subheader("Done!")
@@ -668,6 +677,21 @@ def main():
         if st.session_state.mode == "exam":
             pct = (st.session_state.score / total) * 100
             st.success(f"Score: {st.session_state.score}/{total} ({pct:.1f}%)")
+
+            # ⭐ SHOW MISSED QUESTIONS
+            if st.session_state.wrong_questions:
+                st.markdown("---")
+                st.subheader("📚 Review missed questions")
+
+                for i, wq in enumerate(st.session_state.wrong_questions, 1):
+                    st.markdown(f"**{i}. {wq['question']}**")
+                    correct_answer = wq["options"][wq["correct_index"]]
+                    st.markdown(f"**Correct answer:** {correct_answer}")
+                    st.markdown("---")
+            else:
+                st.balloons()
+                st.success("Perfect score! 🎉")
+
         else:
             st.success("Practice complete — nice work.")
 
